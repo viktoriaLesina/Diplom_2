@@ -1,38 +1,40 @@
+import allure
 import pytest
-import requests
 
 from data import ResponseMessages
-from helpers import Helpers
-from urls import Urls
+from helpers import ApiClient, Helpers
 
 
+@allure.feature('Создание пользователя')
 class TestCreateUser:
-    def test_create_unique_user(self, created_user):
-        response = created_user['response']
+    @allure.title('Создание уникального пользователя')
+    def test_create_unique_user(self):
+        user_data = Helpers.generate_user_data()
+        response = ApiClient.register_user(user_data)
         response_body = response.json()
-        user_data = created_user['user_data']
 
-        assert response.status_code == 200
-        assert response_body['success'] is True
-        assert response_body['user']['email'] == user_data['email']
-        assert response_body['user']['name'] == user_data['name']
-        assert 'accessToken' in response_body
-        assert 'refreshToken' in response_body
+        try:
+            assert response.status_code == 200
+            assert response_body['success'] is True
+            assert response_body['user']['email'] == user_data['email']
+            assert response_body['user']['name'] == user_data['name']
+            assert 'accessToken' in response_body
+            assert 'refreshToken' in response_body
+        finally:
+            access_token = response_body.get('accessToken')
+            if access_token:
+                ApiClient.delete_user(access_token)
 
+    @allure.title('Создание уже зарегистрированного пользователя')
     def test_create_existing_user_returns_error(self, created_user):
-        user_data = created_user['user_data']
-
-        response = requests.post(
-            Urls.REGISTER_USER,
-            json=user_data
-        )
-
+        response = ApiClient.register_user(created_user['user_data'])
         response_body = response.json()
 
         assert response.status_code == 403
         assert response_body['success'] is False
         assert response_body['message'] == ResponseMessages.USER_ALREADY_EXISTS
 
+    @allure.title('Создание пользователя без обязательного поля: {missing_field}')
     @pytest.mark.parametrize('missing_field', ['email', 'password', 'name'])
     def test_create_user_without_required_field_returns_error(
         self,
@@ -41,11 +43,7 @@ class TestCreateUser:
         user_data = Helpers.generate_user_data()
         user_data.pop(missing_field)
 
-        response = requests.post(
-            Urls.REGISTER_USER,
-            json=user_data
-        )
-
+        response = ApiClient.register_user(user_data)
         response_body = response.json()
 
         assert response.status_code == 403

@@ -1,23 +1,20 @@
-import requests
+import allure
 
 from data import ResponseMessages
-from urls import Urls
+from helpers import ApiClient
 
 
+@allure.feature('Авторизация пользователя')
 class TestLoginUser:
+    @allure.title('Авторизация существующего пользователя')
     def test_login_existing_user(self, created_user):
         user_data = created_user['user_data']
-
         login_data = {
             'email': user_data['email'],
             'password': user_data['password']
         }
 
-        response = requests.post(
-            Urls.LOGIN_USER,
-            json=login_data
-        )
-
+        response = ApiClient.login_user(login_data)
         response_body = response.json()
 
         assert response.status_code == 200
@@ -27,19 +24,15 @@ class TestLoginUser:
         assert 'accessToken' in response_body
         assert 'refreshToken' in response_body
 
+    @allure.title('Авторизация с неверными учётными данными')
     def test_login_with_incorrect_credentials_returns_error(self, created_user):
         user_data = created_user['user_data']
-
         login_data = {
             'email': user_data['email'],
             'password': 'incorrect_password'
         }
 
-        response = requests.post(
-            Urls.LOGIN_USER,
-            json=login_data
-        )
-
+        response = ApiClient.login_user(login_data)
         response_body = response.json()
 
         assert response.status_code == 401

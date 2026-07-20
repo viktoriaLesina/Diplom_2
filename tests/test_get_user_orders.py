@@ -1,38 +1,25 @@
-import requests
+import allure
 
 from data import ResponseMessages
-from urls import Urls
+from helpers import ApiClient
 
 
+@allure.feature('Получение заказов пользователя')
 class TestGetUserOrders:
+    @staticmethod
+    @allure.step('Получить идентификаторы двух ингредиентов')
+    def get_two_ingredient_ids():
+        ingredients = ApiClient.get_ingredients().json()['data']
+        return [ingredients[0]['_id'], ingredients[1]['_id']]
+
+    @allure.title('Получение заказов авторизованного пользователя')
     def test_get_orders_authorized_user(self, created_user):
-        ingredients_response = requests.get(Urls.INGREDIENTS)
-        ingredients = ingredients_response.json()['data']
-
-        ingredient_ids = [
-            ingredients[0]['_id'],
-            ingredients[1]['_id']
-        ]
-
-        create_order_response = requests.post(
-            Urls.ORDERS,
-            headers={
-                'Authorization': created_user['access_token']
-            },
-            json={
-                'ingredients': ingredient_ids
-            }
+        ApiClient.create_order(
+            self.get_two_ingredient_ids(),
+            created_user['access_token']
         )
 
-        assert create_order_response.status_code == 200
-
-        response = requests.get(
-            Urls.ORDERS,
-            headers={
-                'Authorization': created_user['access_token']
-            }
-        )
-
+        response = ApiClient.get_user_orders(created_user['access_token'])
         response_body = response.json()
 
         assert response.status_code == 200
@@ -42,9 +29,9 @@ class TestGetUserOrders:
         assert 'total' in response_body
         assert 'totalToday' in response_body
 
+    @allure.title('Получение заказов без авторизации')
     def test_get_orders_unauthorized_user_returns_error(self):
-        response = requests.get(Urls.ORDERS)
-
+        response = ApiClient.get_user_orders()
         response_body = response.json()
 
         assert response.status_code == 401

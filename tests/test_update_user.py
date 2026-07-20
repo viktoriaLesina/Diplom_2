@@ -1,11 +1,13 @@
+import allure
 import pytest
-import requests
 
 from data import ResponseMessages
-from urls import Urls
+from helpers import ApiClient
 
 
+@allure.feature('Изменение данных пользователя')
 class TestUpdateUser:
+    @allure.title('Изменение поля авторизованного пользователя: {field}')
     @pytest.mark.parametrize(
         'field,new_value',
         [
@@ -20,14 +22,10 @@ class TestUpdateUser:
         field,
         new_value
     ):
-        access_token = created_user['access_token']
-
-        response = requests.patch(
-            Urls.USER,
-            headers={'Authorization': access_token},
-            json={field: new_value}
+        response = ApiClient.update_user(
+            {field: new_value},
+            created_user['access_token']
         )
-
         response_body = response.json()
 
         assert response.status_code == 200
@@ -38,6 +36,7 @@ class TestUpdateUser:
         elif field == 'name':
             assert response_body['user']['name'] == new_value
 
+    @allure.title('Изменение поля без авторизации: {field}')
     @pytest.mark.parametrize(
         'field,new_value',
         [
@@ -51,11 +50,7 @@ class TestUpdateUser:
         field,
         new_value
     ):
-        response = requests.patch(
-            Urls.USER,
-            json={field: new_value}
-        )
-
+        response = ApiClient.update_user({field: new_value})
         response_body = response.json()
 
         assert response.status_code == 401
