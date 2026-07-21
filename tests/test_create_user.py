@@ -8,22 +8,21 @@ from helpers import ApiClient, Helpers
 @allure.feature('Создание пользователя')
 class TestCreateUser:
     @allure.title('Создание уникального пользователя')
-    def test_create_unique_user(self):
+    def test_create_unique_user(self, users_to_delete):
         user_data = Helpers.generate_user_data()
         response = ApiClient.register_user(user_data)
         response_body = response.json()
 
-        try:
-            assert response.status_code == 200
-            assert response_body['success'] is True
-            assert response_body['user']['email'] == user_data['email']
-            assert response_body['user']['name'] == user_data['name']
-            assert 'accessToken' in response_body
-            assert 'refreshToken' in response_body
-        finally:
-            access_token = response_body.get('accessToken')
-            if access_token:
-                ApiClient.delete_user(access_token)
+        access_token = response_body.get('accessToken')
+        if access_token:
+            users_to_delete.append(access_token)
+
+        assert response.status_code == 200
+        assert response_body['success'] is True
+        assert response_body['user']['email'] == user_data['email']
+        assert response_body['user']['name'] == user_data['name']
+        assert 'accessToken' in response_body
+        assert 'refreshToken' in response_body
 
     @allure.title('Создание уже зарегистрированного пользователя')
     def test_create_existing_user_returns_error(self, created_user):

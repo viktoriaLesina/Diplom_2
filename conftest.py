@@ -4,6 +4,16 @@ from helpers import ApiClient, Helpers
 
 
 @pytest.fixture
+def users_to_delete():
+    access_tokens = []
+
+    yield access_tokens
+
+    for access_token in access_tokens:
+        ApiClient.delete_user(access_token)
+
+
+@pytest.fixture
 def created_user():
     user_data = Helpers.generate_user_data()
     response = ApiClient.register_user(user_data)
